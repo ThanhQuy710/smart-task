@@ -1,4 +1,5 @@
 import { Card as MuiCard } from '@mui/material'
+import Box from '@mui/material/Box'
 import CardActions from '@mui/material/CardActions'
 import CardContent from '@mui/material/CardContent'
 import CardMedia from '@mui/material/CardMedia'
@@ -7,14 +8,19 @@ import CommentIcon from '@mui/icons-material/Comment'
 import AttachmentIcon from '@mui/icons-material/Attachment'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
+import Chip from '@mui/material/Chip'
 
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { updateCurrentActiveCard, showModalActiveCard } from '~/redux/activeCard/activeCardSlice'
+import { selectCurrentActiveBoard } from '~/redux/activeBoard/activeBoardSlice'
 
 function Card({ card }) {
   const dispatch = useDispatch()
+  const board = useSelector(selectCurrentActiveBoard)
+
+  const cardLabels = board?.labels?.filter(label => card?.labelIds?.includes(label._id)) || []
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: card._id,
@@ -58,6 +64,25 @@ function Card({ card }) {
     >
       {card?.cover && <CardMedia sx={{ height: 140 }} image={card?.cover} /> }
       <CardContent sx={{ p: 1.5, '&:last-child': { p: 1.5 } }}>
+        {!!cardLabels.length &&
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+            {cardLabels.map(label =>
+              <Chip
+                key={label._id}
+                size="small"
+                label={label.title}
+                sx={{
+                  bgcolor: label.color,
+                  color: '#fff',
+                  fontWeight: 700,
+                  borderRadius: '4px',
+                  height: 22,
+                  '& .MuiChip-label': { px: 1 }
+                }}
+              />
+            )}
+          </Box>
+        }
         <Typography>{card?.title}</Typography>
       </CardContent>
       {shouldShowCardActions() &&

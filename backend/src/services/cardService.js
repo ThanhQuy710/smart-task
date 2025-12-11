@@ -50,6 +50,9 @@ const update = async (cardId, reqBody, cardCoverFile, userInfo) => {
     } else if (updateData.incomingMemberInfo) {
       // Trường hợp ADD hoặc REMOVE thành viên ra khỏi Card
       updatedCard = await cardModel.updateMembers(cardId, updateData.incomingMemberInfo)
+    } else if (updateData.incomingLabelInfo) {
+      // Handle ADD/REMOVE label actions for the card
+      updatedCard = await cardModel.updateLabels(cardId, updateData.incomingLabelInfo)
     } else {
       // Các trường hợp update chung như title, description
       updatedCard = await cardModel.update(cardId, updateData)
@@ -64,3 +67,4 @@ export const cardService = {
   createNew,
   update
 }
+

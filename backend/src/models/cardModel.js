@@ -8,7 +8,7 @@ import Joi from 'joi'
 import { ObjectId } from 'mongodb'
 import { GET_DB } from '~/config/mongodb'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE, EMAIL_RULE, EMAIL_RULE_MESSAGE } from '~/utils/validators'
-import { CARD_MEMBER_ACTIONS } from '~/utils/constants'
+import { CARD_MEMBER_ACTIONS, CARD_LABEL_ACTIONS } from '~/utils/constants'
 
 // Define Collection (name & schema)
 const CARD_COLLECTION_NAME = 'cards'
@@ -21,6 +21,9 @@ const CARD_COLLECTION_SCHEMA = Joi.object({
 
   cover: Joi.string().default(null),
   memberIds: Joi.array().items(
+    Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
+  ).default([]),
+  labelIds: Joi.array().items(
     Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
   ).default([]),
   // Dữ liệu comments của Card chúng ta sẽ học cách nhúng - embedded vào bản ghi Card luôn như dưới đây:
@@ -53,7 +56,8 @@ const createNew = async (data) => {
     const newCardToAdd = {
       ...validData,
       boardId: new ObjectId(validData.boardId),
-      columnId: new ObjectId(validData.columnId)
+      columnId: new ObjectId(validData.columnId),
+      labelIds: validData.labelIds ? validData.labelIds.map(id => new ObjectId(id)) : []
     }
 
     const createdCard = await GET_DB().collection(CARD_COLLECTION_NAME).insertOne(newCardToAdd)
@@ -79,6 +83,7 @@ const update = async (cardId, updateData) => {
 
     // Đối với những dữ liệu liên quan ObjectId, biến đổi ở đây
     if (updateData.columnId) updateData.columnId = new ObjectId(updateData.columnId)
+    if (updateData.labelIds) updateData.labelIds = updateData.labelIds.map(_id => (new ObjectId(_id)))
 
     const result = await GET_DB().collection(CARD_COLLECTION_NAME).findOneAndUpdate(
       { _id: new ObjectId(cardId) },
@@ -144,10 +149,27 @@ const updateMembers = async (cardId, incomingMemberInfo) => {
 }
 
 /**
- * Ví dụ cập nhật nhiều bản ghi Comments, code này dùng để cho các bạn tham khảo thêm trong trường hợp muốn cập nhật thông tin user thì gọi để cập nhật lại thông tin user đó trong card comments, ví dụ avatar và displayName.
- * Updating Arrays https://www.mongodb.com/docs/manual/reference/method/db.collection.updateMany/
- * Example: https://www.mongodb.com/docs/manual/reference/method/db.collection.updateMany/#std-label-updateMany-arrayFilters
+ * Update labelIds of a card based on incoming action info.
  */
+const updateLabels = async (cardId, incomingLabelInfo) => {
+  try {
+    let updateCondition = {}
+    if (incomingLabelInfo.action === CARD_LABEL_ACTIONS.ADD) {
+      updateCondition = { $addToSet: { labelIds: new ObjectId(incomingLabelInfo.labelId) } }
+    }
+
+    if (incomingLabelInfo.action === CARD_LABEL_ACTIONS.REMOVE) {
+      updateCondition = { $pull: { labelIds: new ObjectId(incomingLabelInfo.labelId) } }
+    }
+
+    const result = await GET_DB().collection(CARD_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(cardId) },
+      updateCondition,
+      { returnDocument: 'after' }
+    )
+    return result
+  } catch (error) { throw new Error(error) }
+}
 const updateManyComments = async (userInfo) => {
   try {
     const result = await GET_DB().collection(CARD_COLLECTION_NAME).updateMany(
@@ -163,6 +185,16 @@ const updateManyComments = async (userInfo) => {
   } catch (error) { throw new Error(error) }
 }
 
+const removeLabelFromCards = async (labelId) => {
+  try {
+    const result = await GET_DB().collection(CARD_COLLECTION_NAME).updateMany(
+      { labelIds: new ObjectId(labelId) },
+      { $pull: { labelIds: new ObjectId(labelId) } }
+    )
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const cardModel = {
   CARD_COLLECTION_NAME,
   CARD_COLLECTION_SCHEMA,
@@ -172,5 +204,9 @@ export const cardModel = {
   deleteManyByColumnId,
   unshiftNewComment,
   updateMembers,
-  updateManyComments
+  updateLabels,
+  updateManyComments,
+  removeLabelFromCards
 }
+
+

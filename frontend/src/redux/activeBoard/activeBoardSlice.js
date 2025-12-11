@@ -68,6 +68,7 @@ export const activeBoardSlice = createSlice({
     builder.addCase(fetchBoardDetailsAPI.fulfilled, (state, action) => {
       // action.payload ở dây chính là cái response.data trả về ở trên
       let board = action.payload
+      if (!board.labels) board.labels = []
 
       // Thành viên trong cái board sẽ là gộp lại của 2 mảng owners và members
       board.FE_allUsers = board.owners.concat(board.members)

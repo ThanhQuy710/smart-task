@@ -51,6 +51,27 @@ export const createNewCardAPI = async (newCardData) => {
   return response.data
 }
 
+/** Labels */
+export const createNewLabelAPI = async (newLabelData) => {
+  const response = await authorizedAxiosInstance.post(`${API_ROOT}/v1/labels`, newLabelData)
+  return response.data
+}
+
+export const fetchBoardLabelsAPI = async (boardId) => {
+  const response = await authorizedAxiosInstance.get(`${API_ROOT}/v1/labels/board/${boardId}`)
+  return response.data
+}
+
+export const updateLabelAPI = async (labelId, data) => {
+  const response = await authorizedAxiosInstance.put(`${API_ROOT}/v1/labels/${labelId}`, data)
+  return response.data
+}
+
+export const deleteLabelAPI = async (labelId) => {
+  const response = await authorizedAxiosInstance.delete(`${API_ROOT}/v1/labels/${labelId}`)
+  return response.data
+}
+
 /** Users */
 export const registerUserAPI = async (data) => {
   const response = await authorizedAxiosInstance.post(`${API_ROOT}/v1/users/register`, data)

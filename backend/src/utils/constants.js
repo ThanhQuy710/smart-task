@@ -36,3 +36,21 @@ export const CARD_MEMBER_ACTIONS = {
   ADD: 'ADD',
   REMOVE: 'REMOVE'
 }
+
+export const CARD_LABEL_ACTIONS = {
+  ADD: 'ADD',
+  REMOVE: 'REMOVE'
+}
+
+// Fixed palette to keep labels consistent across boards
+export const LABEL_COLORS = [
+  '#61bd4f', // green
+  '#f2d600', // yellow
+  '#ff9f1a', // orange
+  '#eb5a46', // red
+  '#c377e0', // purple
+  '#0079bf', // blue
+  '#00c2e0', // sky
+  '#ff78cb', // pink
+  '#b6bbbf'  // gray
+]

@@ -12,6 +12,7 @@ import { BOARD_TYPES } from '~/utils/constants'
 import { columnModel } from '~/models/columnModel'
 import { cardModel } from '~/models/cardModel'
 import { userModel } from '~/models/userModel'
+import { labelModel } from '~/models/labelModel'
 import { pagingSkipValue } from '~/utils/algorithms'
 
 // Define Collection (Name & Schema)
@@ -102,6 +103,12 @@ const getDetails = async (userId, boardId) => {
         localField: '_id',
         foreignField: 'boardId',
         as: 'cards'
+      } },
+      { $lookup: {
+        from: labelModel.LABEL_COLLECTION_NAME,
+        localField: '_id',
+        foreignField: 'boardId',
+        as: 'labels'
       } },
       { $lookup: {
         from: userModel.USER_COLLECTION_NAME,

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import Box from '@mui/material/Box'
 import Modal from '@mui/material/Modal'
 import Typography from '@mui/material/Typography'
@@ -31,6 +32,7 @@ import { toast } from 'react-toastify'
 import CardUserGroup from './CardUserGroup'
 import CardDescriptionMdEditor from './CardDescriptionMdEditor'
 import CardActivitySection from './CardActivitySection'
+import CardLabelPicker from './CardLabelPicker'
 import { useDispatch, useSelector } from 'react-redux'
 import {
   clearAndHideCurrentActiveCard,
@@ -38,8 +40,8 @@ import {
   updateCurrentActiveCard,
   selectIsShowModalActiveCard
 } from '~/redux/activeCard/activeCardSlice'
-import { updateCardDetailsAPI } from '~/apis'
-import { updateCardInBoard } from '~/redux/activeBoard/activeBoardSlice'
+import { updateCardDetailsAPI, createNewLabelAPI, updateLabelAPI, deleteLabelAPI } from '~/apis'
+import { updateCardInBoard, selectCurrentActiveBoard, updateCurrentActiveBoard } from '~/redux/activeBoard/activeBoardSlice'
 import { selectCurrentUser } from '~/redux/user/userSlice'
 import { CARD_MEMBER_ACTIONS } from '~/utils/constants'
 import ExitToAppIcon from '@mui/icons-material/ExitToApp'
@@ -74,12 +76,15 @@ function ActiveCard() {
   const activeCard = useSelector(selectCurrentActiveCard)
   const isShowModalActiveCard = useSelector(selectIsShowModalActiveCard)
   const currentUser = useSelector(selectCurrentUser)
+  const board = useSelector(selectCurrentActiveBoard)
+  const [labelPopoverAnchor, setLabelPopoverAnchor] = useState(null)
 
   // Không dùng biến State để check đóng mở Modal nữa vì chúng ta sẽ check theo cái biến isShowModalActiveCard trong redux
   // const [isOpen, setIsOpen] = useState(true)
   // const handleOpenModal = () => setIsOpen(true)
   const handleCloseModal = () => {
     // setIsOpen(false)
+    setLabelPopoverAnchor(null)
     dispatch(clearAndHideCurrentActiveCard())
   }
 
@@ -94,6 +99,59 @@ function ActiveCard() {
     dispatch(updateCardInBoard(updatedCard))
 
     return updatedCard
+  }
+
+  const handleOpenLabelPopover = (event) => {
+    setLabelPopoverAnchor(event.currentTarget)
+  }
+
+  const handleCloseLabelPopover = () => setLabelPopoverAnchor(null)
+
+  const onUpdateCardLabels = (incomingLabelInfo) => {
+    callApiUpdateCard({ incomingLabelInfo })
+  }
+
+  const onCreateNewLabel = async (newLabelData) => {
+    if (!board) return null
+    const createdLabel = await createNewLabelAPI(newLabelData)
+    dispatch(updateCurrentActiveBoard({
+      ...board,
+      labels: [...(board.labels || []), createdLabel]
+    }))
+    return createdLabel
+  }
+
+  const onUpdateLabel = async (labelId, data) => {
+    const updatedLabel = await updateLabelAPI(labelId, data)
+    const existedLabel = (board.labels || []).find(label => label._id === labelId) || {}
+    const mergedLabel = updatedLabel ? { ...existedLabel, ...updatedLabel } : { ...existedLabel, ...data }
+    const newBoard = {
+      ...board,
+      labels: (board.labels || []).map(label => label._id === labelId ? mergedLabel : label)
+    }
+    dispatch(updateCurrentActiveBoard(newBoard))
+  }
+
+  const onDeleteLabel = async (labelId) => {
+    await deleteLabelAPI(labelId)
+    const newBoard = {
+      ...board,
+      labels: (board.labels || []).filter(l => l._id !== labelId),
+      columns: (board.columns || []).map(col => ({
+        ...col,
+        cards: (col.cards || []).map(card => ({
+          ...card,
+          labelIds: card.labelIds?.filter(id => id !== labelId) || []
+        }))
+      }))
+    }
+    dispatch(updateCurrentActiveBoard(newBoard))
+
+    if (activeCard?.labelIds?.includes(labelId)) {
+      const updatedCard = { ...activeCard, labelIds: activeCard.labelIds.filter(id => id !== labelId) }
+      dispatch(updateCurrentActiveCard(updatedCard))
+      dispatch(updateCardInBoard(updatedCard))
+    }
   }
 
   const onUpdateCardTitle = (newTitle) => {
@@ -192,6 +250,20 @@ function ActiveCard() {
             </Box>
 
             <Box sx={{ mb: 3 }}>
+              <Typography sx={{ fontWeight: '600', color: 'primary.main', mb: 1 }}>Labels</Typography>
+              <CardLabelPicker
+                cardLabelIds={activeCard?.labelIds}
+                anchorEl={labelPopoverAnchor}
+                onOpenPopover={handleOpenLabelPopover}
+                onClosePopover={handleCloseLabelPopover}
+                onUpdateCardLabels={onUpdateCardLabels}
+                onCreateLabel={onCreateNewLabel}
+                onUpdateLabel={onUpdateLabel}
+                onDeleteLabel={onDeleteLabel}
+              />
+            </Box>
+
+            <Box sx={{ mb: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <SubjectRoundedIcon />
                 <Typography variant="span" sx={{ fontWeight: '600', fontSize: '20px' }}>Description</Typography>
@@ -269,7 +341,10 @@ function ActiveCard() {
               </SidebarItem>
 
               <SidebarItem><AttachFileOutlinedIcon fontSize="small" />Attachment</SidebarItem>
-              <SidebarItem><LocalOfferOutlinedIcon fontSize="small" />Labels</SidebarItem>
+              <SidebarItem className="active" onClick={handleOpenLabelPopover}>
+                <LocalOfferOutlinedIcon fontSize="small" />
+                Labels
+              </SidebarItem>
               <SidebarItem><TaskAltOutlinedIcon fontSize="small" />Checklist</SidebarItem>
               <SidebarItem><WatchLaterOutlinedIcon fontSize="small" />Dates</SidebarItem>
               <SidebarItem><AutoFixHighOutlinedIcon fontSize="small" />Custom Fields</SidebarItem>
