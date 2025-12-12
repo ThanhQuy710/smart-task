@@ -31,7 +31,17 @@ const createNew = async (req, res, next) => {
      * Làm như trên thì sau này dù các bạn có thêm hay sửa gì vào cái BOARD_TYPES trong file constants thì ở những chỗ dùng Joi trong Model hay Validation cũng không cần phải đụng vào nữa. Tối ưu gọn gàng luôn.
     */
     // type: Joi.string().valid(BOARD_TYPES.PUBLIC, BOARD_TYPES.PRIVATE).required(),
-    type: Joi.string().required().valid(...Object.values(BOARD_TYPES))
+    type: Joi.string().required().valid(...Object.values(BOARD_TYPES)),
+    template: Joi.object({
+      type: Joi.string().valid('color', 'image', 'custom').required(),
+      value: Joi.string().allow('', null)
+    }),
+    backgrounds: Joi.array().items(
+      Joi.object({
+        id: Joi.string().required(),
+        imageUrl: Joi.string().uri().required()
+      })
+    )
   })
 
   try {
@@ -53,6 +63,16 @@ const update = async (req, res, next) => {
     type: Joi.string().valid(...Object.values(BOARD_TYPES)),
     columnOrderIds: Joi.array().items(
       Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
+    ),
+    template: Joi.object({
+      type: Joi.string().valid('color', 'image', 'custom').required(),
+      value: Joi.string().allow('', null)
+    }),
+    backgrounds: Joi.array().items(
+      Joi.object({
+        id: Joi.string().required(),
+        imageUrl: Joi.string().uri().required()
+      })
     )
   })
 

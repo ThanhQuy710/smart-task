@@ -65,7 +65,7 @@ function Column({ column }) {
 
   const addNewCard = async () => {
     if (!newCardTitle) {
-      toast.error('Please enter Card Title!', { position: 'bottom-right' })
+      toast.error('Vui lòng nhập tiêu đề thẻ!', { position: 'bottom-right' })
       return
     }
 

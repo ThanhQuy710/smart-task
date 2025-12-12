@@ -1,8 +1,10 @@
 import { useEffect } from 'react'
 import Container from '@mui/material/Container'
+import Box from '@mui/material/Box'
 import AppBar from '~/components/AppBar/AppBar'
 import BoardBar from './BoardBar/BoardBar'
 import BoardContent from './BoardContent/BoardContent'
+import { buildBoardBackgroundSx } from '~/utils/boardTemplates'
 
 // import { mockData } from '~/apis/mock-data'
 import {
@@ -113,24 +115,41 @@ function Board() {
   }
 
   if (!board) {
-    return <PageLoadingSpinner caption="Loading Board..." />
+    return <PageLoadingSpinner caption="Đang tải board..." />
   }
 
   return (
-    <Container disableGutters maxWidth={false} sx={{ height: '100vh' }}>
-      {/* Modal Active Card, check đóng/mở dựa theo cái State isShowModalActiveCard lưu trong Redux */}
-      <ActiveCard />
-
-      {/* Các thành phần còn lại của Board Details */}
-      <AppBar />
-      <BoardBar board={board} />
-      <BoardContent
-        board={board}
-        // 3 cái trường hợp move dưới đây thì giữ nguyên để code xử lý kéo thả ở phần BoardContent không bị quá dài mất kiểm soát khi đọc code, maintain.
-        moveColumns={moveColumns}
-        moveCardInTheSameColumn={moveCardInTheSameColumn}
-        moveCardToDifferentColumn={moveCardToDifferentColumn}
+    <Container disableGutters maxWidth={false} sx={(theme) => ({
+      position: 'relative',
+      overflow: 'hidden',
+      height: '100vh',
+      padding: 0,
+      ...buildBoardBackgroundSx(board?.template, { withOverlay: true, overlayOpacity: 0.35 })(theme)
+    })}>
+      <Box
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          background: 'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.16), transparent 32%), radial-gradient(circle at 80% 8%, rgba(255,255,255,0.2), transparent 28%), radial-gradient(circle at 55% 85%, rgba(0,0,0,0.32), transparent 34%)',
+          opacity: 0.7,
+          pointerEvents: 'none'
+        }}
       />
+      <Box sx={{ position: 'relative', zIndex: 1 }}>
+        {/* Modal Active Card, check đóng/mở dựa theo cái State isShowModalActiveCard lưu trong Redux */}
+        <ActiveCard />
+
+        {/* Các thành phần còn lại của Board Details */}
+        <AppBar />
+        <BoardBar board={board} />
+        <BoardContent
+          board={board}
+          // 3 cái trường hợp move dưới đây thì giữ nguyên để code xử lý kéo thả ở phần BoardContent không bị quá dài mất kiểm soát khi đọc code, maintain.
+          moveColumns={moveColumns}
+          moveCardInTheSameColumn={moveCardInTheSameColumn}
+          moveCardToDifferentColumn={moveCardToDifferentColumn}
+        />
+      </Box>
     </Container>
   )
 }

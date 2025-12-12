@@ -14,6 +14,7 @@ import ApiError from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
 import { cloneDeep } from 'lodash'
 import { DEFAULT_PAGE, DEFAULT_ITEMS_PER_PAGE } from '~/utils/constants'
+import { CloudinaryProvider } from '~/providers/CloudinaryProvider'
 
 const createNew = async (userId, reqBody) => {
   try {
@@ -64,13 +65,43 @@ const getDetails = async (userId, boardId) => {
   } catch (error) { throw error }
 }
 
-const update = async (boardId, reqBody) => {
+const update = async (boardId, reqBody, file) => {
   try {
+    const currentBoard = await boardModel.findOneById(boardId)
+    if (!currentBoard) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Board not found!')
+    }
+
+    // template có thể được stringify từ form-data nên cần parse lại
+    if (typeof reqBody.template === 'string') {
+      try {
+        reqBody.template = JSON.parse(reqBody.template)
+      } catch (error) {
+        delete reqBody.template
+      }
+    }
+
     const updateData = {
       ...reqBody,
       updatedAt: Date.now()
     }
+
+    if (file) {
+      const uploadResult = await CloudinaryProvider.streamUpload(file.buffer, 'board-backgrounds')
+      const newBackground = {
+        id: uploadResult?.public_id || `${Date.now()}`,
+        imageUrl: uploadResult?.secure_url
+      }
+
+      updateData.backgrounds = [...(currentBoard.backgrounds || []), newBackground]
+      updateData.template = { type: 'custom', value: newBackground.imageUrl }
+    }
+
     const updatedBoard = await boardModel.update(boardId, updateData)
+
+    if (!updatedBoard) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Board not found!')
+    }
 
     return updatedBoard
   } catch (error) { throw error }

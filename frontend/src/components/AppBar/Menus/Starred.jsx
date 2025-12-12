@@ -30,7 +30,7 @@ function Starred() {
         onClick={handleClick}
         endIcon={<ExpandMoreIcon />}
       >
-        Starred
+        Đánh dấu sao
       </Button>
       <Menu
         id="basic-menu-starred"
@@ -42,13 +42,13 @@ function Starred() {
         }}
       >
         <MenuItem>
-          <ListItemText inset>Single</ListItemText>
+          <ListItemText inset>Đơn</ListItemText>
         </MenuItem>
         <MenuItem>
           <ListItemText inset>1.15</ListItemText>
         </MenuItem>
         <MenuItem>
-          <ListItemText inset>Double</ListItemText>
+          <ListItemText inset>Đôi</ListItemText>
         </MenuItem>
         <MenuItem>
           <ListItemIcon>
@@ -58,14 +58,14 @@ function Starred() {
         </MenuItem>
         <Divider />
         <MenuItem>
-          <ListItemText>Add space before paragraph</ListItemText>
+          <ListItemText>Thêm khoảng trước đoạn</ListItemText>
         </MenuItem>
         <MenuItem>
-          <ListItemText>Add space after paragraph</ListItemText>
+          <ListItemText>Thêm khoảng sau đoạn</ListItemText>
         </MenuItem>
         <Divider />
         <MenuItem>
-          <ListItemText>Custom spacing...</ListItemText>
+          <ListItemText>Khoảng cách tùy chỉnh...</ListItemText>
         </MenuItem>
       </Menu>
     </Box>

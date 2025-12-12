@@ -30,7 +30,7 @@ function Templates() {
         onClick={handleClick}
         endIcon={<ExpandMoreIcon />}
       >
-        Templates
+        Mẫu
       </Button>
       <Menu
         id="basic-menu-templates"
@@ -42,13 +42,13 @@ function Templates() {
         }}
       >
         <MenuItem>
-          <ListItemText inset>Single</ListItemText>
+          <ListItemText inset>Đơn</ListItemText>
         </MenuItem>
         <MenuItem>
           <ListItemText inset>1.15</ListItemText>
         </MenuItem>
         <MenuItem>
-          <ListItemText inset>Double</ListItemText>
+          <ListItemText inset>Đôi</ListItemText>
         </MenuItem>
         <MenuItem>
           <ListItemIcon>
@@ -58,14 +58,14 @@ function Templates() {
         </MenuItem>
         <Divider />
         <MenuItem>
-          <ListItemText>Add space before paragraph</ListItemText>
+          <ListItemText>Thêm khoảng trước đoạn</ListItemText>
         </MenuItem>
         <MenuItem>
-          <ListItemText>Add space after paragraph</ListItemText>
+          <ListItemText>Thêm khoảng sau đoạn</ListItemText>
         </MenuItem>
         <Divider />
         <MenuItem>
-          <ListItemText>Custom spacing...</ListItemText>
+          <ListItemText>Khoảng cách tùy chỉnh...</ListItemText>
         </MenuItem>
       </Menu>
     </Box>

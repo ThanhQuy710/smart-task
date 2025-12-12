@@ -87,7 +87,7 @@ function Boards() {
 
   // Lúc chưa tồn tại boards > đang chờ gọi api thì hiện loading
   if (!boards) {
-    return <PageLoadingSpinner caption="Loading Boards..." />
+    return <PageLoadingSpinner caption="Đang tải danh sách board..." />
   }
 
   return (
@@ -99,15 +99,15 @@ function Boards() {
             <Stack direction="column" spacing={1}>
               <SidebarItem className="active">
                 <SpaceDashboardIcon fontSize="small" />
-                Boards
+                Bảng
               </SidebarItem>
               <SidebarItem>
                 <ListAltIcon fontSize="small" />
-                Templates
+                Mẫu
               </SidebarItem>
               <SidebarItem>
                 <HomeIcon fontSize="small" />
-                Home
+                Trang chủ
               </SidebarItem>
             </Stack>
             <Divider sx={{ my: 1 }} />
@@ -117,11 +117,11 @@ function Boards() {
           </Grid>
 
           <Grid xs={12} sm={9}>
-            <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 3 }}>Your boards:</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 3 }}>Board của bạn:</Typography>
 
             {/* Trường hợp gọi API nhưng không tồn tại cái board nào trong Database trả về */}
             {boards?.length === 0 &&
-              <Typography variant="span" sx={{ fontWeight: 'bold', mb: 3 }}>No result found!</Typography>
+              <Typography variant="span" sx={{ fontWeight: 'bold', mb: 3 }}>Không tìm thấy board nào!</Typography>
             }
 
             {/* Trường hợp gọi API và có boards trong Database trả về thì render danh sách boards */}
@@ -155,7 +155,7 @@ function Boards() {
                             color: 'primary.main',
                             '&:hover': { color: 'primary.light' }
                           }}>
-                          Go to board <ArrowRightIcon fontSize="small" />
+                          Đi tới board <ArrowRightIcon fontSize="small" />
                         </Box>
                       </CardContent>
                     </Card>

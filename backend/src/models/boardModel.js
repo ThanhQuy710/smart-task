@@ -12,6 +12,7 @@ import { BOARD_TYPES } from '~/utils/constants'
 import { columnModel } from '~/models/columnModel'
 import { cardModel } from '~/models/cardModel'
 import { userModel } from '~/models/userModel'
+import { labelModel } from '~/models/labelModel'
 import { pagingSkipValue } from '~/utils/algorithms'
 
 // Define Collection (Name & Schema)
@@ -41,6 +42,20 @@ const BOARD_COLLECTION_SCHEMA = Joi.object({
   // Những thành viên của cái board
   memberIds: Joi.array().items(
     Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
+  ).default([]),
+
+  // Template background của board
+  template: Joi.object({
+    type: Joi.string().valid('color', 'image', 'custom').required(),
+    value: Joi.string().allow(null, '')
+  }).default({ type: 'color', value: '#1976d2' }),
+
+  // Các hình nền đã upload
+  backgrounds: Joi.array().items(
+    Joi.object({
+      id: Joi.string().required(),
+      imageUrl: Joi.string().uri().required()
+    })
   ).default([]),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
@@ -102,6 +117,12 @@ const getDetails = async (userId, boardId) => {
         localField: '_id',
         foreignField: 'boardId',
         as: 'cards'
+      } },
+      { $lookup: {
+        from: labelModel.LABEL_COLLECTION_NAME,
+        localField: '_id',
+        foreignField: 'boardId',
+        as: 'labels'
       } },
       { $lookup: {
         from: userModel.USER_COLLECTION_NAME,

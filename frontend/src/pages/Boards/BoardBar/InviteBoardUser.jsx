@@ -66,7 +66,7 @@ function InviteBoardUser({ boardId }) {
       >
         <form onSubmit={handleSubmit(submitInviteUserToBoard)} style={{ width: '320px' }}>
           <Box sx={{ p: '15px 20px 20px 20px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Typography variant="span" sx={{ fontWeight: 'bold', fontSize: '16px' }}>Invite User To This Board!</Typography>
+            <Typography variant="span" sx={{ fontWeight: 'bold', fontSize: '16px' }}>Mời thành viên vào board</Typography>
             <Box>
               <TextField
                 autoFocus

@@ -4,6 +4,7 @@ import { API_ROOT } from '~/utils/constants'
 import { mapOrder } from '~/utils/sorts'
 import { isEmpty } from 'lodash'
 import { generatePlaceholderCard } from '~/utils/formatters'
+import { DEFAULT_BOARD_TEMPLATE } from '~/utils/boardTemplates'
 
 // Khởi tạo giá trị State của một cái Slice trong redux
 const initialState = {
@@ -68,6 +69,9 @@ export const activeBoardSlice = createSlice({
     builder.addCase(fetchBoardDetailsAPI.fulfilled, (state, action) => {
       // action.payload ở dây chính là cái response.data trả về ở trên
       let board = action.payload
+      if (!board.labels) board.labels = []
+      if (!board.template || !board.template.type) board.template = { ...DEFAULT_BOARD_TEMPLATE }
+      if (!board.backgrounds) board.backgrounds = []
 
       // Thành viên trong cái board sẽ là gộp lại của 2 mảng owners và members
       board.FE_allUsers = board.owners.concat(board.members)

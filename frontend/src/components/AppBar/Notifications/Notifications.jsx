@@ -96,7 +96,7 @@ function Notifications() {
 
   return (
     <Box>
-      <Tooltip title="Notifications">
+      <Tooltip title="Thông báo">
         <Badge
           color="warning"
           // variant="none"
@@ -124,7 +124,7 @@ function Notifications() {
         MenuListProps={{ 'aria-labelledby': 'basic-button-open-notification' }}
       >
         {(!notifications || notifications.length === 0) &&
-          <MenuItem sx={{ minWidth: 200 }}>You do not have any new notifications.</MenuItem>
+          <MenuItem sx={{ minWidth: 200 }}>Bạn không có thông báo mới.</MenuItem>
         }
         {notifications?.map((notification, index) =>
           <Box key={index}>
@@ -137,7 +137,7 @@ function Notifications() {
                 {/* Nội dung của thông báo */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Box><GroupAddIcon fontSize="small" /></Box>
-                  <Box><strong>{notification.inviter?.displayName}</strong> had invited you to join the board <strong>{notification.board?.title}</strong></Box>
+                  <Box><strong>{notification.inviter?.displayName}</strong> đã mời bạn tham gia board <strong>{notification.board?.title}</strong></Box>
                 </Box>
 
                 {/* Khi Status của thông báo này là PENDING thì sẽ hiện 2 Button */}
@@ -151,7 +151,7 @@ function Notifications() {
                       size="small"
                       onClick={() => updateBoardInvitation(BOARD_INVITATION_STATUS.ACCEPTED, notification._id)}
                     >
-                      Accept
+                      Chấp nhận
                     </Button>
                     <Button
                       className="interceptor-loading"
@@ -161,7 +161,7 @@ function Notifications() {
                       size="small"
                       onClick={() => updateBoardInvitation(BOARD_INVITATION_STATUS.REJECTED, notification._id)}
                     >
-                      Reject
+                      Từ chối
                     </Button>
                   </Box>
                 }
@@ -169,10 +169,10 @@ function Notifications() {
                 {/* Khi Status của thông báo này là ACCEPTED hoặc REJECTED thì sẽ hiện thông tin đó lên */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'flex-end' }}>
                   {notification.boardInvitation.status === BOARD_INVITATION_STATUS.ACCEPTED &&
-                    <Chip icon={<DoneIcon />} label="Accepted" color="success" size="small" />
+                    <Chip icon={<DoneIcon />} label="Đã chấp nhận" color="success" size="small" />
                   }
                   {notification.boardInvitation.status === BOARD_INVITATION_STATUS.REJECTED &&
-                    <Chip icon={<NotInterestedIcon />} label="Rejected" size="small" />
+                    <Chip icon={<NotInterestedIcon />} label="Đã từ chối" size="small" />
                   }
                 </Box>
 

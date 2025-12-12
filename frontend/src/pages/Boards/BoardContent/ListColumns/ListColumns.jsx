@@ -28,7 +28,7 @@ function ListColumns({ columns }) {
 
   const addNewColumn = async () => {
     if (!newColumnTitle) {
-      toast.error('Please enter Column Title!')
+      toast.error('Vui lòng nhập tiêu đề cột!')
       return
     }
 
@@ -117,7 +117,7 @@ function ListColumns({ columns }) {
                 py: 1
               }}
             >
-              Add new column
+              Thêm cột mới
             </Button>
           </Box>
           : <Box sx={{
@@ -133,7 +133,7 @@ function ListColumns({ columns }) {
             gap: 1
           }}>
             <TextField
-              label="Enter column title..."
+              label="Nhập tiêu đề cột..."
               type="text"
               size="small"
               variant="outlined"
@@ -162,7 +162,7 @@ function ListColumns({ columns }) {
                   borderColor: (theme) => theme.palette.success.main,
                   '&:hover': { bgcolor: (theme) => theme.palette.success.main }
                 }}
-              >Add Column</Button>
+              >Thêm cột</Button>
               <CloseIcon
                 fontSize="small"
                 sx={{

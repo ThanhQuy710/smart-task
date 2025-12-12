@@ -60,7 +60,7 @@ function CardDescriptionMdEditor({ cardDescriptionProp, handleUpdateCardDescript
             variant="contained"
             size="small"
             color="info">
-            Save
+            Lưu
           </Button>
         </Box>
         : <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -72,7 +72,7 @@ function CardDescriptionMdEditor({ cardDescriptionProp, handleUpdateCardDescript
             color="info"
             size="small"
             startIcon={<EditNoteIcon />}>
-            Edit
+            Chỉnh sửa
           </Button>
           <Box data-color-mode={mode}>
             <MDEditor.Markdown

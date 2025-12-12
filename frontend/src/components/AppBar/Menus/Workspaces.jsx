@@ -34,7 +34,7 @@ function Workspaces() {
         onClick={handleClick}
         endIcon={<ExpandMoreIcon />}
       >
-        Workspaces
+        Không gian làm việc
       </Button>
       <Menu
         id="basic-menu-workspaces"
@@ -49,7 +49,7 @@ function Workspaces() {
           <ListItemIcon>
             <ContentCut fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Cut</ListItemText>
+          <ListItemText>Cắt</ListItemText>
           <Typography variant="body2" color="text.secondary">
             ⌘X
           </Typography>
@@ -58,7 +58,7 @@ function Workspaces() {
           <ListItemIcon>
             <ContentCopy fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Copy</ListItemText>
+          <ListItemText>Sao chép</ListItemText>
           <Typography variant="body2" color="text.secondary">
             ⌘C
           </Typography>
@@ -67,7 +67,7 @@ function Workspaces() {
           <ListItemIcon>
             <ContentPaste fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Paste</ListItemText>
+          <ListItemText>Dán</ListItemText>
           <Typography variant="body2" color="text.secondary">
             ⌘V
           </Typography>
@@ -77,7 +77,7 @@ function Workspaces() {
           <ListItemIcon>
             <Cloud fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Web Clipboard</ListItemText>
+          <ListItemText>Bảng nhớ web</ListItemText>
         </MenuItem>
       </Menu>
     </Box>
