@@ -17,7 +17,10 @@ Router.route('/')
 Router.route('/:id')
   .put(
     authMiddleware.isAuthorized,
-    multerUploadMiddleware.upload.single('cardCover'),
+    multerUploadMiddleware.upload.fields([
+      { name: 'cardCover', maxCount: 1 },
+      { name: 'cardAttachment', maxCount: 1 }
+    ]),
     cardValidation.update,
     cardController.update
   )

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import moment from 'moment'
 import Box from '@mui/material/Box'
 import Modal from '@mui/material/Modal'
 import Typography from '@mui/material/Typography'
@@ -27,12 +28,16 @@ import DvrOutlinedIcon from '@mui/icons-material/DvrOutlined'
 
 import ToggleFocusInput from '~/components/Form/ToggleFocusInput'
 import VisuallyHiddenInput from '~/components/Form/VisuallyHiddenInput'
-import { singleFileValidator } from '~/utils/validators'
+import { singleAttachmentValidator, singleFileValidator } from '~/utils/validators'
 import { toast } from 'react-toastify'
 import CardUserGroup from './CardUserGroup'
 import CardDescriptionMdEditor from './CardDescriptionMdEditor'
 import CardActivitySection from './CardActivitySection'
 import CardLabelPicker from './CardLabelPicker'
+import CardDatesPicker from './CardDatesPicker'
+import CardAttachmentPicker from './CardAttachmentPicker'
+import CardTasksPopover from './CardTasksPopover'
+import CardTaskList from './CardTaskList'
 import { useDispatch, useSelector } from 'react-redux'
 import {
   clearAndHideCurrentActiveCard,
@@ -78,6 +83,10 @@ function ActiveCard() {
   const currentUser = useSelector(selectCurrentUser)
   const board = useSelector(selectCurrentActiveBoard)
   const [labelPopoverAnchor, setLabelPopoverAnchor] = useState(null)
+  const [datePopoverAnchor, setDatePopoverAnchor] = useState(null)
+  const [attachmentPopoverAnchor, setAttachmentPopoverAnchor] = useState(null)
+  const [taskPopoverAnchor, setTaskPopoverAnchor] = useState(null)
+  const [uploadingAttachments, setUploadingAttachments] = useState([])
 
   // Không dùng biến State để check đóng mở Modal nữa vì chúng ta sẽ check theo cái biến isShowModalActiveCard trong redux
   // const [isOpen, setIsOpen] = useState(true)
@@ -85,6 +94,10 @@ function ActiveCard() {
   const handleCloseModal = () => {
     // setIsOpen(false)
     setLabelPopoverAnchor(null)
+    setDatePopoverAnchor(null)
+    setAttachmentPopoverAnchor(null)
+    setTaskPopoverAnchor(null)
+    setUploadingAttachments([])
     dispatch(clearAndHideCurrentActiveCard())
   }
 
@@ -106,6 +119,27 @@ function ActiveCard() {
   }
 
   const handleCloseLabelPopover = () => setLabelPopoverAnchor(null)
+
+  const handleOpenDatePopover = (event) => {
+    setDatePopoverAnchor(event.currentTarget)
+  }
+
+  const handleCloseDatePopover = () => setDatePopoverAnchor(null)
+
+  const handleOpenTaskPopover = (event) => setTaskPopoverAnchor(event.currentTarget)
+  const handleCloseTaskPopover = () => setTaskPopoverAnchor(null)
+
+  const handleOpenAttachmentPopover = (event) => {
+    setAttachmentPopoverAnchor(event.currentTarget)
+  }
+
+  const handleCloseAttachmentPopover = () => setAttachmentPopoverAnchor(null)
+
+  const formatDateDisplay = (value) => {
+    if (!value) return ''
+    const parsed = moment(value)
+    return parsed.isValid() ? parsed.format('DD/MM/YYYY') : ''
+  }
 
   const onUpdateCardLabels = (incomingLabelInfo) => {
     callApiUpdateCard({ incomingLabelInfo })
@@ -162,6 +196,31 @@ function ActiveCard() {
     callApiUpdateCard({ description: newDescription })
   }
 
+  const normalizeDatesPayload = (datesObj) => {
+    const payload = {}
+    if (datesObj.startDate !== undefined) {
+      payload.startDate = datesObj.startDate ? new Date(datesObj.startDate).getTime() : null
+    }
+    if (datesObj.endDate !== undefined) {
+      payload.endDate = datesObj.endDate ? new Date(datesObj.endDate).getTime() : null
+    }
+    if (datesObj.totalDate !== undefined) {
+      payload.totalDate = datesObj.totalDate
+    }
+    return payload
+  }
+
+  const onUpdateCardDates = (partialDates) => {
+    const mergedDates = {
+      startDate: activeCard?.dates?.startDate ?? null,
+      endDate: activeCard?.dates?.endDate ?? null,
+      totalDate: activeCard?.dates?.totalDate ?? null,
+      ...partialDates
+    }
+    const normalized = normalizeDatesPayload(mergedDates)
+    callApiUpdateCard({ dates: normalized })
+  }
+
   const onUploadCardCover = (event) => {
     // console.log(event.target?.files[0])
     const error = singleFileValidator(event.target?.files[0])
@@ -179,6 +238,164 @@ function ActiveCard() {
     )
   }
 
+  const onUploadCardAttachment = async (file) => {
+    const error = singleAttachmentValidator(file)
+    if (error) {
+      toast.error(error)
+      return
+    }
+    const tempId = `${Date.now()}-${Math.random()}`
+    setUploadingAttachments((prev) => [
+      { _id: tempId, fileName: file.name, bytes: file.size, isUploading: true },
+      ...prev
+    ])
+
+    const reqData = new FormData()
+    reqData.append('cardAttachment', file)
+
+    try {
+      await callApiUpdateCard(reqData)
+    } catch (err) {
+      // Error toast handled globally via axios interceptors
+    } finally {
+      setUploadingAttachments((prev) => prev.filter((item) => item._id !== tempId))
+    }
+  }
+
+  const onRemoveCardAttachment = async (attachmentId) => {
+    if (!attachmentId) return
+    try {
+      await callApiUpdateCard({ attachmentToRemove: attachmentId })
+    } catch (err) {
+      // Error toast handled globally via axios interceptors
+    }
+  }
+
+  const onAddTask = async ({ title, description }) => {
+    if (!title?.trim()) {
+      toast.error('Task title is required')
+      return
+    }
+    await callApiUpdateCard({
+      taskAction: {
+        type: 'ADD_TASK',
+        payload: { title: title.trim(), description: description?.trim() || '' }
+      }
+    })
+    handleCloseTaskPopover()
+  }
+
+  const onAddSubtask = async (taskId, title) => {
+    if (!title?.trim()) return
+    await callApiUpdateCard({
+      taskAction: {
+        type: 'ADD_SUBTASK',
+        payload: { taskId, title: title.trim() }
+      }
+    })
+  }
+
+  const onToggleSubtask = async (taskId, subtaskId, isCompleted) => {
+    await callApiUpdateCard({
+      taskAction: {
+        type: 'TOGGLE_SUBTASK',
+        payload: { taskId, subtaskId, isCompleted }
+      }
+    })
+  }
+
+  const onUpdateSubtask = async (taskId, subtaskId, title) => {
+    if (!title?.trim()) return
+    await callApiUpdateCard({
+      taskAction: {
+        type: 'UPDATE_SUBTASK',
+        payload: { taskId, subtaskId, title: title.trim() }
+      }
+    })
+  }
+
+  const onDeleteSubtask = async (taskId, subtaskId) => {
+    await callApiUpdateCard({
+      taskAction: {
+        type: 'DELETE_SUBTASK',
+        payload: { taskId, subtaskId }
+      }
+    })
+  }
+
+  const onUpdateTask = async (taskId, title, description) => {
+    if (!title?.trim()) return
+    await callApiUpdateCard({
+      taskAction: {
+        type: 'UPDATE_TASK',
+        payload: { taskId, title: title.trim(), description }
+      }
+    })
+  }
+
+  const onDeleteTask = async (taskId) => {
+    await callApiUpdateCard({
+      taskAction: {
+        type: 'DELETE_TASK',
+        payload: { taskId }
+      }
+    })
+  }
+
+  const onAssignSubtask = async (taskId, subtaskId, userId, remove = false) => {
+    await callApiUpdateCard({
+      taskAction: {
+        type: 'ASSIGN_SUBTASK',
+        payload: { taskId, subtaskId, userId, remove }
+      }
+    })
+  }
+
+  const onReorderSubtasks = async (taskId, orderedIds) => {
+    if (!Array.isArray(orderedIds) || !orderedIds.length) return
+    // Optimistically update UI
+    const newTasks = (activeCard?.tasks || []).map(task => {
+      if (task._id !== taskId) return task
+      const subMap = (task.subtasks || []).reduce((acc, sub) => ({ ...acc, [sub._id]: sub }), {})
+      return { ...task, subtasks: orderedIds.map(id => subMap[id]).filter(Boolean) }
+    })
+    const optimisticCard = { ...activeCard, tasks: newTasks }
+    dispatch(updateCurrentActiveCard(optimisticCard))
+    dispatch(updateCardInBoard(optimisticCard))
+
+    await callApiUpdateCard({
+      taskAction: {
+        type: 'REORDER_SUBTASKS',
+        payload: { taskId, orderedIds }
+      }
+    })
+  }
+
+  const onReorderTasks = async (orderedIds) => {
+    if (!Array.isArray(orderedIds) || !orderedIds.length) return
+    const taskMap = (activeCard?.tasks || []).reduce((acc, t) => ({ ...acc, [t._id]: t }), {})
+    const reorderedTasks = orderedIds.map(id => taskMap[id]).filter(Boolean)
+    const optimisticCard = { ...activeCard, tasks: reorderedTasks }
+    dispatch(updateCurrentActiveCard(optimisticCard))
+    dispatch(updateCardInBoard(optimisticCard))
+
+    await callApiUpdateCard({
+      taskAction: {
+        type: 'REORDER_TASKS',
+        payload: { orderedIds }
+      }
+    })
+  }
+
+  const onCompleteAllSubtasks = async (taskId) => {
+    await callApiUpdateCard({
+      taskAction: {
+        type: 'COMPLETE_ALL_SUBTASKS',
+        payload: { taskId }
+      }
+    })
+  }
+
   // Dùng async await ở đây để component con CardActivitySection chờ và nếu thành công thì mới clear thẻ input comment
   const onAddCardComment = async (commentToAdd) => {
     await callApiUpdateCard({ commentToAdd })
@@ -187,6 +404,10 @@ function ActiveCard() {
   const onUpdateCardMembers = (incomingMemberInfo) => {
     callApiUpdateCard({ incomingMemberInfo })
   }
+
+  const startDateText = formatDateDisplay(activeCard?.dates?.startDate)
+  const endDateText = formatDateDisplay(activeCard?.dates?.endDate)
+  const hasDateRange = startDateText || endDateText
 
   return (
     <Modal
@@ -239,6 +460,14 @@ function ActiveCard() {
         <Grid container spacing={2} sx={{ mb: 3 }}>
           {/* Left side */}
           <Grid xs={12} sm={9}>
+            {hasDateRange && (
+              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
+                <WatchLaterOutlinedIcon fontSize="small" />
+                <Typography sx={{ fontWeight: 600 }}>
+                  {[startDateText, endDateText].filter(Boolean).join(' - ')}
+                </Typography>
+              </Box>
+            )}
             <Box sx={{ mb: 3 }}>
               <Typography sx={{ fontWeight: '600', color: 'primary.main', mb: 1 }}>Members</Typography>
 
@@ -273,6 +502,27 @@ function ActiveCard() {
               <CardDescriptionMdEditor
                 cardDescriptionProp={activeCard?.description}
                 handleUpdateCardDescription={onUpdateCardDescription}
+              />
+            </Box>
+
+            <Box sx={{ mb: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <TaskAltOutlinedIcon />
+                <Typography variant="span" sx={{ fontWeight: '600', fontSize: '20px' }}>Tasks</Typography>
+              </Box>
+              <CardTaskList
+                tasks={activeCard?.tasks || []}
+                cardMembers={(board?.FE_allUsers || []).filter(u => activeCard?.memberIds?.includes(u._id))}
+                onAddSubtask={onAddSubtask}
+                onToggleSubtask={onToggleSubtask}
+                onUpdateSubtask={onUpdateSubtask}
+                onDeleteSubtask={onDeleteSubtask}
+                onAssignSubtask={onAssignSubtask}
+                onUpdateTask={onUpdateTask}
+                onDeleteTask={onDeleteTask}
+                onReorderSubtasks={onReorderSubtasks}
+                onReorderTasks={onReorderTasks}
+                onCompleteAllSubtasks={onCompleteAllSubtasks}
               />
             </Box>
 
@@ -340,13 +590,22 @@ function ActiveCard() {
                 <VisuallyHiddenInput type="file" onChange={onUploadCardCover} />
               </SidebarItem>
 
-              <SidebarItem><AttachFileOutlinedIcon fontSize="small" />Attachment</SidebarItem>
+              <SidebarItem className="active" onClick={handleOpenAttachmentPopover}>
+                <AttachFileOutlinedIcon fontSize="small" />
+                {`Attachment${activeCard?.attachments?.length ? ` (${activeCard.attachments.length})` : ''}`}
+              </SidebarItem>
               <SidebarItem className="active" onClick={handleOpenLabelPopover}>
                 <LocalOfferOutlinedIcon fontSize="small" />
                 Labels
               </SidebarItem>
-              <SidebarItem><TaskAltOutlinedIcon fontSize="small" />Checklist</SidebarItem>
-              <SidebarItem><WatchLaterOutlinedIcon fontSize="small" />Dates</SidebarItem>
+              <SidebarItem className="active" onClick={handleOpenTaskPopover}>
+                <TaskAltOutlinedIcon fontSize="small" />
+                Checklist
+              </SidebarItem>
+              <SidebarItem className="active" onClick={handleOpenDatePopover}>
+                <WatchLaterOutlinedIcon fontSize="small" />
+                Dates
+              </SidebarItem>
               <SidebarItem><AutoFixHighOutlinedIcon fontSize="small" />Custom Fields</SidebarItem>
             </Stack>
 
@@ -371,6 +630,25 @@ function ActiveCard() {
             </Stack>
           </Grid>
         </Grid>
+        <CardAttachmentPicker
+          attachments={activeCard?.attachments || []}
+          uploadingAttachments={uploadingAttachments}
+          anchorEl={attachmentPopoverAnchor}
+          onClose={handleCloseAttachmentPopover}
+          onUpload={onUploadCardAttachment}
+          onRemove={onRemoveCardAttachment}
+        />
+        <CardTasksPopover
+          anchorEl={taskPopoverAnchor}
+          onClose={handleCloseTaskPopover}
+          onAddTask={onAddTask}
+        />
+        <CardDatesPicker
+          dates={activeCard?.dates}
+          anchorEl={datePopoverAnchor}
+          onClose={handleCloseDatePopover}
+          onUpdateDates={onUpdateCardDates}
+        />
       </Box>
     </Modal>
   )

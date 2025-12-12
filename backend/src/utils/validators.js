@@ -16,4 +16,16 @@ export const PASSWORD_RULE = /^(?=.*[a-zA-Z])(?=.*\d)[A-Za-z\d\W]{8,256}$/
 export const PASSWORD_RULE_MESSAGE = 'Password must include at least 1 letter, a number, and at least 8 characters.'
 
 export const LIMIT_COMMON_FILE_SIZE = 10485760 // byte = 10 MB
-export const ALLOW_COMMON_FILE_TYPES = ['image/jpg', 'image/jpeg', 'image/png']
+export const ALLOW_IMAGE_FILE_TYPES = ['image/jpg', 'image/jpeg', 'image/png']
+export const ALLOW_ATTACHMENT_FILE_TYPES = [
+  ...ALLOW_IMAGE_FILE_TYPES,
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/csv',
+  'text/plain',
+  'application/zip',
+  'application/x-zip-compressed'
+]

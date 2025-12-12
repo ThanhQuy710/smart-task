@@ -167,7 +167,8 @@ function CardLabelPicker({
         open={Boolean(anchorEl)}
         anchorEl={anchorEl}
         onClose={onClosePopover}
-        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        anchorOrigin={{ vertical: "center", horizontal: "left" }}
+        transformOrigin={{ vertical: "center", horizontal: "right" }}
       >
         <Box sx={{ p: 2, width: 320 }}>
           <Typography sx={{ fontWeight: 700, mb: 1 }}>Board labels</Typography>

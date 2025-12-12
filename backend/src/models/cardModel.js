@@ -23,18 +23,48 @@ const CARD_COLLECTION_SCHEMA = Joi.object({
   memberIds: Joi.array().items(
     Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
   ).default([]),
+  attachments: Joi.array().items({
+    _id: Joi.string().required(),
+    fileName: Joi.string().required(),
+    format: Joi.string().allow(null, ''),
+    url: Joi.string().uri().required(),
+    bytes: Joi.number().required(),
+    createdAt: Joi.date().timestamp('javascript').default(Date.now),
+    publicId: Joi.string().allow(null, '')
+  }).default([]),
   labelIds: Joi.array().items(
     Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
   ).default([]),
-  // Dữ liệu comments của Card chúng ta sẽ học cách nhúng - embedded vào bản ghi Card luôn như dưới đây:
+  dates: Joi.object({
+    startDate: Joi.date().timestamp('javascript').allow(null),
+    endDate: Joi.date().timestamp('javascript').allow(null),
+    totalDate: Joi.number().allow(null)
+  }).default({
+    startDate: null,
+    endDate: null,
+    totalDate: null
+  }),
+  // Embedded comments
   comments: Joi.array().items({
     userId: Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
     userEmail: Joi.string().pattern(EMAIL_RULE).message(EMAIL_RULE_MESSAGE),
     userAvatar: Joi.string(),
     userDisplayName: Joi.string(),
     content: Joi.string(),
-    // Chỗ này lưu ý vì dùng hàm $push để thêm comment nên không set default Date.now luôn giống hàm insertOne khi create được.
     commentedAt: Joi.date().timestamp()
+  }).default([]),
+  tasks: Joi.array().items({
+    _id: Joi.string().required(),
+    title: Joi.string().required(),
+    description: Joi.string().allow('', null).default(''),
+    createdAt: Joi.date().timestamp('javascript').default(Date.now),
+    subtasks: Joi.array().items({
+      _id: Joi.string().required(),
+      title: Joi.string().required(),
+      isCompleted: Joi.boolean().default(false),
+      assigneeIds: Joi.array().items(Joi.string()).default([]),
+      createdAt: Joi.date().timestamp('javascript').default(Date.now)
+    }).default([])
   }).default([]),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
@@ -42,7 +72,7 @@ const CARD_COLLECTION_SCHEMA = Joi.object({
   _destroy: Joi.boolean().default(false)
 })
 
-// Chỉ định ra những Fields mà chúng ta không muốn cho phép cập nhật trong hàm update()
+// Fields not allowed to update
 const INVALID_UPDATE_FIELDS = ['_id', 'boardId', 'createdAt']
 
 const validateBeforeCreate = async (data) => {
@@ -52,12 +82,19 @@ const validateBeforeCreate = async (data) => {
 const createNew = async (data) => {
   try {
     const validData = await validateBeforeCreate(data)
-    // Biến đổi một số dữ liệu liên quan tới ObjectId chuẩn chỉnh
     const newCardToAdd = {
       ...validData,
       boardId: new ObjectId(validData.boardId),
       columnId: new ObjectId(validData.columnId),
       labelIds: validData.labelIds ? validData.labelIds.map(id => new ObjectId(id)) : []
+    }
+
+    if (validData.dates) {
+      newCardToAdd.dates = {
+        startDate: validData.dates.startDate ? new Date(validData.dates.startDate) : null,
+        endDate: validData.dates.endDate ? new Date(validData.dates.endDate) : null,
+        totalDate: validData.dates.totalDate ?? null
+      }
     }
 
     const createdCard = await GET_DB().collection(CARD_COLLECTION_NAME).insertOne(newCardToAdd)
@@ -74,21 +111,48 @@ const findOneById = async (cardId) => {
 
 const update = async (cardId, updateData) => {
   try {
-    // Lọc những field mà chúng ta không cho phép cập nhật linh tinh
     Object.keys(updateData).forEach(fieldName => {
       if (INVALID_UPDATE_FIELDS.includes(fieldName)) {
         delete updateData[fieldName]
       }
     })
 
-    // Đối với những dữ liệu liên quan ObjectId, biến đổi ở đây
     if (updateData.columnId) updateData.columnId = new ObjectId(updateData.columnId)
     if (updateData.labelIds) updateData.labelIds = updateData.labelIds.map(_id => (new ObjectId(_id)))
 
     const result = await GET_DB().collection(CARD_COLLECTION_NAME).findOneAndUpdate(
       { _id: new ObjectId(cardId) },
       { $set: updateData },
-      { returnDocument: 'after' } // sẽ trả về kết quả mới sau khi cập nhật
+      { returnDocument: 'after' }
+    )
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
+const updateDates = async (cardId, dates = {}) => {
+  try {
+    const updateFields = {}
+    const dateKeys = ['startDate', 'endDate', 'totalDate']
+    dateKeys.forEach(key => {
+      if (dates[key] !== undefined) {
+        if (['startDate', 'endDate'].includes(key)) {
+          updateFields[`dates.${key}`] = dates[key] ? new Date(dates[key]) : dates[key]
+        } else {
+          updateFields[`dates.${key}`] = dates[key]
+        }
+      }
+    })
+
+    if (Object.keys(updateFields).length === 0) {
+      return await findOneById(cardId)
+    }
+
+    updateFields.updatedAt = Date.now()
+
+    const result = await GET_DB().collection(CARD_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(cardId) },
+      { $set: updateFields },
+      { returnDocument: 'after' }
     )
     return result
   } catch (error) { throw new Error(error) }
@@ -101,15 +165,7 @@ const deleteManyByColumnId = async (columnId) => {
   } catch (error) { throw new Error(error) }
 }
 
-/**
-  * Đẩy một phần tử comment vào đầu mảng comments!
-  * - Trong JS, ngược lại với push (thêm phần tử vào cuối mảng) sẽ là unshift (thêm phần tử vào đầu mảng)
-  * - Nhưng trong mongodb hiện tại chỉ có $push - mặc định đẩy phần tử vào cuối mảng.
-  * Dĩ nhiên cứ lưu comment mới vào cuối mảng cũng được, nhưng nay sẽ học cách để thêm phần tử vào đẩu mảng trong mongodb.
-  * Vẫn dùng $push, nhưng bọc data vào Array để trong $each và chỉ định $position: 0
-  * https://stackoverflow.com/a/25732817/8324172
-  * https://www.mongodb.com/docs/manual/reference/operator/update/position/
-*/
+// Unshift comment to top of array
 const unshiftNewComment = async (cardId, commentData) => {
   try {
     const result = await GET_DB().collection(CARD_COLLECTION_NAME).findOneAndUpdate(
@@ -121,27 +177,21 @@ const unshiftNewComment = async (cardId, commentData) => {
   } catch (error) { throw new Error(error) }
 }
 
-/**
-* Hàm này sẽ có nhiệm vụ xử lý cập nhật thêm hoặc xóa member khỏi card dựa theo Action
-* sẽ dùng $push để thêm hoặc $pull để loại bỏ ($pull trong mongodb để lấy một phần tử ra khỏi mảng rồi xóa nó đi)
-*/
+// Update members ADD/REMOVE
 const updateMembers = async (cardId, incomingMemberInfo) => {
   try {
-    // Tạo ra một biến updateCondition ban đầu là rỗng
     let updateCondition = {}
     if (incomingMemberInfo.action === CARD_MEMBER_ACTIONS.ADD) {
-      // console.log('Trường hợp Add, dùng $push: ', incomingMemberInfo)
       updateCondition = { $push: { memberIds: new ObjectId(incomingMemberInfo.userId) } }
     }
 
     if (incomingMemberInfo.action === CARD_MEMBER_ACTIONS.REMOVE) {
-      // console.log('Trường hợp Remove, dùng $pull: ', incomingMemberInfo)
       updateCondition = { $pull: { memberIds: new ObjectId(incomingMemberInfo.userId) } }
     }
 
     const result = await GET_DB().collection(CARD_COLLECTION_NAME).findOneAndUpdate(
       { _id: new ObjectId(cardId) },
-      updateCondition, // truyền cái updateCondition ở đây
+      updateCondition,
       { returnDocument: 'after' }
     )
     return result
@@ -170,6 +220,7 @@ const updateLabels = async (cardId, incomingLabelInfo) => {
     return result
   } catch (error) { throw new Error(error) }
 }
+
 const updateManyComments = async (userInfo) => {
   try {
     const result = await GET_DB().collection(CARD_COLLECTION_NAME).updateMany(
@@ -206,7 +257,6 @@ export const cardModel = {
   updateMembers,
   updateLabels,
   updateManyComments,
-  removeLabelFromCards
+  removeLabelFromCards,
+  updateDates
 }
-
-
