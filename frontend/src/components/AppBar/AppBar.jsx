@@ -59,7 +59,7 @@ function AppBar() {
               variant="span"
               sx={{ fontSize: "1.2rem", fontWeight: "bold", color: "white" }}
             >
-              Trello
+              Smart Task
             </Typography>
           </Box>
         </Link>
